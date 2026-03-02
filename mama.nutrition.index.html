@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>孕期飲食熱量助手 - 專業版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #fff5f7; }
+        .card { border-radius: 20px; transition: all 0.3s ease; }
+        .pink-gradient { background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%); }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #ffb6c1; border-radius: 10px; }
+    </style>
+</head>
+<body class="p-4 md:p-8 pb-20">
+    <div id="app" class="max-w-md mx-auto space-y-6">
+        <!-- 頂部狀態列 -->
+        <header class="flex justify-between items-center py-2">
+            <div>
+                <h1 class="text-xl font-bold text-pink-600">孕期飲食助手 🤰</h1>
+                <p id="current-date" class="text-xs text-gray-400 font-medium"></p>
+            </div>
+            <button onclick="clearAllData()" class="text-xs bg-gray-200 px-2 py-1 rounded text-gray-500">重設今日資料</button>
+        </header>
+
+        <!-- 今日結算儀表板 -->
+        <div class="card pink-gradient p-6 text-white shadow-lg relative overflow-hidden">
+            <div class="relative z-10">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm font-medium opacity-90">今日總攝取</span>
+                    <span id="daily-status" class="bg-white/20 px-2 py-0.5 rounded text-[10px]">控制中</span>
+                </div>
+                <div class="flex items-baseline gap-1">
+                    <span id="total-daily-calories" class="text-4xl font-bold">0</span>
+                    <span class="text-sm">/ 1800 kcal</span>
+                </div>
+                <!-- 三餐進度條 -->
+                <div class="mt-4 grid grid-cols-3 gap-2 text-[10px] text-center">
+                    <div>
+                        <div class="bg-white/30 h-1.5 rounded-full mb-1"><div id="br-bar" class="bg-white h-full rounded-full w-0 transition-all"></div></div>
+                        早餐 <span id="br-val">0</span>
+                    </div>
+                    <div>
+                        <div class="bg-white/30 h-1.5 rounded-full mb-1"><div id="lu-bar" class="bg-white h-full rounded-full w-0 transition-all"></div></div>
+                        午餐 <span id="lu-val">0</span>
+                    </div>
+                    <div>
+                        <div class="bg-white/30 h-1.5 rounded-full mb-1"><div id="di-bar" class="bg-white h-full rounded-full w-0 transition-all"></div></div>
+                        晚餐 <span id="di-val">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 記錄本餐內容 -->
+        <div class="card bg-white p-5 shadow-sm space-y-4">
+            <div class="flex justify-between items-center">
+                <h3 class="font-bold text-gray-700 flex items-center">
+                    <span class="text-pink-400 mr-2">🍴</span> 紀錄這餐吃了什麼
+                </h3>
+                <select id="meal-type" class="text-xs border-none bg-pink-50 text-pink-600 rounded-lg px-2 py-1 font-bold">
+                    <option value="breakfast">早餐</option>
+                    <option value="lunch">午餐</option>
+                    <option value="dinner">晚餐</option>
+                </select>
+            </div>
+
+            <!-- 自定義輸入區 -->
+            <div class="flex gap-2">
+                <input id="custom-food" type="text" placeholder="輸入食物名稱" class="flex-1 bg-gray-50 border-none rounded-xl px-4 py-2 text-sm focus:ring-1 focus:ring-pink-300">
+                <input id="custom-cal" type="number" placeholder="熱量" class="w-20 bg-gray-50 border-none rounded-xl px-2 py-2 text-sm focus:ring-1 focus:ring-pink-300">
+                <button onclick="addCustomFood()" class="bg-pink-500 text-white px-4 py-2 rounded-xl text-sm font-bold">加</button>
+            </div>
+
+            <!-- 醬料加購(點選) -->
+            <div class="flex flex-wrap gap-2 py-1">
+                <span class="text-[10px] text-gray-400 w-full">常見醬料：</span>
+                <button onclick="addFood({name:'沙拉醬', calories:120, unit:'1份'})" class="text-[10px] bg-yellow-50 text-yellow-700 border border-yellow-100 px-2 py-1 rounded-md">+沙拉醬(120k)</button>
+                <button onclick="addFood({name:'沙茶醬', calories:110, unit:'1份'})" class="text-[10px] bg-yellow-50 text-yellow-700 border border-yellow-100 px-2 py-1 rounded-md">+沙茶醬(110k)</button>
+                <button onclick="addFood({name:'和風醬', calories:25, unit:'1份'})" class="text-[10px] bg-green-50 text-green-700 border border-green-100 px-2 py-1 rounded-md">+和風醬(25k)</button>
+            </div>
+
+            <!-- 食物快速選擇 -->
+            <div class="border-t pt-4">
+                <div class="flex gap-2 mb-3 overflow-x-auto pb-2 custom-scrollbar">
+                    <button onclick="renderFoodList('澱粉')" class="whitespace-nowrap px-3 py-1 rounded-full bg-gray-100 text-xs text-gray-500 active:bg-pink-100 active:text-pink-600">低GI澱粉</button>
+                    <button onclick="renderFoodList('蛋白質')" class="whitespace-nowrap px-3 py-1 rounded-full bg-gray-100 text-xs text-gray-500">優質蛋白</button>
+                    <button onclick="renderFoodList('蔬果')" class="whitespace-nowrap px-3 py-1 rounded-full bg-gray-100 text-xs text-gray-500">高纖蔬果</button>
+                </div>
+                <div id="food-db" class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto custom-scrollbar">
+                    <!-- JS 渲染 -->
+                </div>
+            </div>
+
+            <!-- 已選項目 -->
+            <div id="selected-list" class="min-h-[30px] flex flex-wrap gap-2 border-t pt-3">
+                <p class="text-gray-300 text-[10px]">尚未選擇內容...</p>
+            </div>
+
+            <button onclick="saveMeal()" id="save-btn" class="w-full bg-pink-500 text-white py-3 rounded-2xl font-bold shadow-md active:scale-[0.98] transition-all">
+                存入這餐紀錄
+            </button>
+        </div>
+
+        <!-- 建議區 -->
+        <div id="suggestion-box" class="card bg-white p-5 shadow-sm border-l-4 border-pink-400">
+            <h3 id="suggest-title" class="font-bold text-gray-800 text-sm mb-1">💡 媽咪小提醒</h3>
+            <p id="suggest-content" class="text-xs text-gray-500 leading-relaxed">請開始紀錄您的第一餐，我會根據攝取狀況給予代換建議。</p>
+        </div>
+
+        <!-- 底部快捷選單 -->
+        <div class="fixed bottom-4 left-1/2 -translate-x-1/2 w-[90%] max-w-md bg-white/80 backdrop-blur-md border border-white p-2 rounded-2xl shadow-xl flex justify-around">
+            <button onclick="showModal('gi-modal')" class="flex flex-col items-center p-2">
+                <span class="text-lg">📖</span>
+                <span class="text-[10px] text-gray-500">低GI知識</span>
+            </button>
+            <button onclick="showModal('history-modal')" class="flex flex-col items-center p-2">
+                <span class="text-lg">📝</span>
+                <span class="text-[10px] text-gray-500">今日詳情</span>
+            </button>
+        </div>
+
+        <!-- 低 GI 彈窗 -->
+        <div id="gi-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div class="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4">
+                <h2 class="text-xl font-bold text-pink-600">孕期低 GI 飲食建議</h2>
+                <div class="text-sm text-gray-600 space-y-3">
+                    <p class="bg-pink-50 p-3 rounded-lg">控制 GI (升糖指數) 能預防妊娠糖尿病，讓媽咪「胖寶寶不胖自己」。</p>
+                    <ul class="space-y-2 text-xs">
+                        <li class="flex items-start"><span class="text-pink-500 mr-2">●</span> <b>主食代換：</b>白飯換糙米或五穀飯，吐司換全麥。</li>
+                        <li class="flex items-start"><span class="text-pink-500 mr-2">●</span> <b>進食順序：</b>先喝湯(清湯) -> 吃菜 -> 吃肉 -> 最後吃澱粉。</li>
+                        <li class="flex items-start"><span class="text-pink-500 mr-2">●</span> <b>醬料陷阱：</b>避開沙拉醬、沙茶、甜辣醬，選用和風、油醋或天然辛香料。</li>
+                    </ul>
+                </div>
+                <button onclick="closeModal('gi-modal')" class="w-full bg-pink-500 py-3 rounded-xl font-bold text-white">了解了</button>
+            </div>
+        </div>
+
+        <!-- 今日詳情彈窗 -->
+        <div id="history-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div class="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4">
+                <h2 class="text-lg font-bold text-gray-700">今日紀錄明細</h2>
+                <div id="history-content" class="text-xs text-gray-600 space-y-4 max-h-80 overflow-y-auto">
+                    <!-- JS 渲染內容 -->
+                </div>
+                <button onclick="closeModal('history-modal')" class="w-full bg-gray-100 py-3 rounded-xl font-bold text-gray-500">關閉</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const foodData = [
+            { name: "糙米飯", calories: 220, category: "澱粉" },
+            { name: "地瓜(中)", calories: 120, category: "澱粉" },
+            { name: "五穀飯", calories: 210, category: "澱粉" },
+            { name: "全麥吐司", calories: 80, category: "澱粉" },
+            { name: "雞胸肉", calories: 150, category: "蛋白質" },
+            { name: "水煮蛋", calories: 75, category: "蛋白質" },
+            { name: "蒸魚片", calories: 120, category: "蛋白質" },
+            { name: "無糖豆漿", calories: 110, category: "蛋白質" },
+            { name: "燙青菜", calories: 35, category: "蔬果" },
+            { name: "大番茄", calories: 25, category: "蔬果" },
+            { name: "芭樂", calories: 60, category: "蔬果" }
+        ];
+
+        let dailyData = JSON.parse(localStorage.getItem('mom_diet_data')) || {
+            date: new Date().toLocaleDateString(),
+            breakfast: { items: [], total: 0 },
+            lunch: { items: [], total: 0 },
+            dinner: { items: [], total: 0 }
+        };
+
+        let tempMealItems = [];
+
+        function init() {
+            document.getElementById('current-date').innerText = new Date().toLocaleDateString();
+            // 自動選取當前餐別
+            const hour = new Date().getHours();
+            const mealSelect = document.getElementById('meal-type');
+            if (hour < 11) mealSelect.value = 'breakfast';
+            else if (hour < 16) mealSelect.value = 'lunch';
+            else mealSelect.value = 'dinner';
+            
+            renderFoodList('澱粉');
+            updateOverallUI();
+        }
+
+        function renderFoodList(cat) {
+            const container = document.getElementById('food-db');
+            container.innerHTML = foodData.filter(f => f.category === cat).map(food => `
+                <button onclick='addFood(${JSON.stringify(food)})' class="bg-gray-50 border border-gray-100 p-2 rounded-xl text-left hover:border-pink-300 active:scale-95 transition-all">
+                    <div class="text-[11px] font-bold text-gray-600">${food.name}</div>
+                    <div class="text-[9px] text-gray-400">${food.calories} kcal</div>
+                </button>
+            `).join('');
+        }
+
+        function addFood(food) {
+            tempMealItems.push(food);
+            renderTempList();
+        }
+
+        function addCustomFood() {
+            const name = document.getElementById('custom-food').value;
+            const cal = parseInt(document.getElementById('custom-cal').value);
+            if (!name || isNaN(cal)) return;
+            
+            // 簡易邏輯：如果輸入含醬、炸、甜，自動增加警示感
+            addFood({ name: name, calories: cal, unit: "自定義" });
+            document.getElementById('custom-food').value = '';
+            document.getElementById('custom-cal').value = '';
+        }
+
+        function renderTempList() {
+            const list = document.getElementById('selected-list');
+            if (tempMealItems.length === 0) {
+                list.innerHTML = '<p class="text-gray-300 text-[10px]">尚未選擇內容...</p>';
+                return;
+            }
+            list.innerHTML = tempMealItems.map((item, idx) => `
+                <span class="bg-pink-100 text-pink-600 px-2 py-0.5 rounded-full text-[10px] flex items-center">
+                    ${item.name} (${item.calories})
+                    <button onclick="removeTemp(${idx})" class="ml-1 font-bold">×</button>
+                </span>
+            `).join('');
+        }
+
+        function removeTemp(idx) {
+            tempMealItems.splice(idx, 1);
+            renderTempList();
+        }
+
+        function saveMeal() {
+            const type = document.getElementById('meal-type').value;
+            const total = tempMealItems.reduce((s, i) => s + i.calories, 0);
+            
+            if (total === 0) return;
+
+            dailyData[type].items.push(...tempMealItems);
+            dailyData[type].total += total;
+            
+            localStorage.setItem('mom_diet_data', JSON.stringify(dailyData));
+            tempMealItems = [];
+            renderTempList();
+            updateOverallUI();
+            
+            // 給予即時反饋
+            const title = document.getElementById('suggest-title');
+            const content = document.getElementById('suggest-content');
+            if (total > 700) {
+                title.innerText = "⚠️ 這餐熱量偏高！";
+                content.innerText = `這餐攝取了 ${total} 大卡。下一餐建議將澱粉份量減半，並避開勾芡類與醬料。`;
+            } else {
+                title.innerText = "✅ 紀錄成功";
+                content.innerText = `這餐熱量控制在 ${total} 大卡，表現很棒！記得多喝水幫助代謝。`;
+            }
+        }
+
+        function updateOverallUI() {
+            const total = dailyData.breakfast.total + dailyData.lunch.total + dailyData.dinner.total;
+            document.getElementById('total-daily-calories').innerText = total;
+            
+            // 更新進度條
+            document.getElementById('br-val').innerText = dailyData.breakfast.total;
+            document.getElementById('br-bar').style.width = Math.min((dailyData.breakfast.total/600)*100, 100) + '%';
+            document.getElementById('lu-val').innerText = dailyData.lunch.total;
+            document.getElementById('lu-bar').style.width = Math.min((dailyData.lunch.total/600)*100, 100) + '%';
+            document.getElementById('di-val').innerText = dailyData.dinner.total;
+            document.getElementById('di-bar').style.width = Math.min((dailyData.dinner.total/600)*100, 100) + '%';
+
+            const status = document.getElementById('daily-status');
+            if (total > 1800) {
+                status.innerText = "今日已過量";
+                status.className = "bg-red-500 px-2 py-0.5 rounded text-[10px]";
+            } else {
+                status.innerText = "攝取控制中";
+                status.className = "bg-white/20 px-2 py-0.5 rounded text-[10px]";
+            }
+
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const content = document.getElementById('history-content');
+            const sections = ['breakfast', 'lunch', 'dinner'];
+            const names = { breakfast: '🌅 早餐', lunch: '☀️ 午餐', dinner: '🌙 晚餐' };
+            
+            content.innerHTML = sections.map(s => `
+                <div class="border-b pb-2">
+                    <div class="flex justify-between font-bold text-gray-700">
+                        <span>${names[s]}</span>
+                        <span class="text-pink-500">${dailyData[s].total} kcal</span>
+                    </div>
+                    <div class="flex flex-wrap gap-1 mt-1">
+                        ${dailyData[s].items.length ? dailyData[s].items.map(i => `<span class="bg-gray-100 px-1 rounded text-gray-400">${i.name}</span>`).join('') : '<span class="text-gray-300 italic">無紀錄</span>'}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function clearAllData() {
+            if (confirm("確定要清除今日的所有飲食紀錄嗎？")) {
+                localStorage.removeItem('mom_diet_data');
+                location.reload();
+            }
+        }
+
+        function showModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
